@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { FiBell, FiCalendar, FiCommand, FiMenu, FiMoon, FiSearch, FiSun, FiUser } from 'react-icons/fi';
 import { useDispatch, useSelector } from 'react-redux';
 import { toggleTheme } from '../redux/themeSlice';
@@ -6,6 +6,21 @@ import { toggleTheme } from '../redux/themeSlice';
 const Navbar = ({ isSidebarOpen, setIsSidebarOpen, isMobile }) => {
   const dispatch = useDispatch();
   const { theme } = useSelector((state) => state.theme);
+  const [currentDate, setCurrentDate] = useState('');
+
+  useEffect(() => {
+    const formatDate = (date) => {
+      const options = { weekday: 'short', month: 'short', day: 'numeric' };
+      return date.toLocaleDateString('en-US', options);
+    };
+    setCurrentDate(formatDate(new Date()));
+    
+    const timer = setInterval(() => {
+      setCurrentDate(formatDate(new Date()));
+    }, 60000);
+    
+    return () => clearInterval(timer);
+  }, []);
 
   return (
     <header className="sticky top-0 z-10 border-b border-secondary-200/70 bg-white/[0.78] backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/60">
@@ -37,7 +52,7 @@ const Navbar = ({ isSidebarOpen, setIsSidebarOpen, isMobile }) => {
         <div className="flex items-center gap-2">
           <div className="hidden items-center gap-2 rounded-lg border border-slate-200 bg-white/[0.72] px-3 py-2 text-sm font-semibold text-slate-600 md:flex dark:border-white/10 dark:bg-white/[0.05] dark:text-slate-300">
             <FiCalendar size={16} />
-            Tue, May 19
+            {currentDate}
           </div>
 
           <button
