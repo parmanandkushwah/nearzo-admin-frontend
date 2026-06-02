@@ -1,5 +1,6 @@
-import React, { Fragment, useMemo, useState } from 'react';
+import React, { Fragment, useMemo, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import api from '../../services/api';
 import { FiEye, FiEdit, FiTruck, FiCheck, FiMoreVertical, FiSearch, FiX, FiPackage, FiUser, FiMapPin, FiClock, FiShoppingBag, FiCreditCard, FiCalendar, FiChevronLeft, FiChevronRight, FiShoppingCart, FiDollarSign, FiFileText, FiStar, FiMail } from 'react-icons/fi';
 
 const initialOrder = {
@@ -45,89 +46,114 @@ const initialOrder = {
 };
 
 const Orders = () => {
-  const [orders, setOrders] = useState([
-    { 
-      id: 1, orderNo: 'ORD-001', customer: 'Rajesh Kumar', customerPhone: '+91 98765 43210', customerAddress: '123 Main Street, Apartment 4B, New Delhi - 110001', amount: 450, status: 'delivered', date: '2024-01-15', time: '14:30',
-      deliveryBoy: 'Amit Verma', store: 'Fresh Mart', itemsCount: 2,
-      items: [
-        { id: 1, name: 'Basmati Rice', price: 120, quantity: 1, mrp: 150, image: 'https://images.unsplash.com/photo-1586201375465-8dbc6b5d5c5c?w=100' },
-        { id: 2, name: 'Fresh Apples', price: 200, quantity: 1, mrp: 250, image: 'https://images.unsplash.com/photo-1560806887-1e4cd05dce4a?w=100' }
-      ],
-      storeInfo: {
-        name: 'Fresh Mart',
-        ownerName: 'Mr. Suresh Mishra',
-        phone: '+91 11 2345 6789',
-        email: 'freshmart@store.com',
-        address: '456 Market Road, New Delhi - 110001'
-      },
-      deliveryBoyInfo: {
-        name: 'Amit Verma',
-        phone: '+91 98765 12345',
-        rating: 4.8,
-        image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop',
-        vehicle: 'Bike',
-        vehicleNo: 'DL-01-AB-1234'
-      }
-    },
-    { 
-      id: 2, orderNo: 'ORD-002', customer: 'Priya Sharma', customerPhone: '+91 98765 43211', customerAddress: '456 Park Avenue, Sector 15, Noida - 201301', amount: 1250, status: 'pending', date: '2024-01-15', time: '16:45',
-      deliveryBoy: '-', store: 'Green Grocery', itemsCount: 4,
-      items: [
-        { id: 1, name: 'Organic Tomatoes', price: 80, quantity: 2, mrp: 100, image: 'https://images.unsplash.com/photo-1546094096-0df4bcaaa337?w=100' },
-        { id: 2, name: 'Potato', price: 40, quantity: 3, mrp: 50, image: 'https://images.unsplash.com/photo-1518977676611-d9fd2ae5b625?w=100' },
-        { id: 3, name: 'Onion', price: 60, quantity: 1, mrp: 80, image: 'https://images.unsplash.com/photo-1615478424868-37aeb4c2d5c9?w=100' },
-        { id: 4, name: 'Milk', price: 50, quantity: 1, mrp: 60, image: 'https://images.unsplash.com/photo-1563636619027-6c250bba4df0?w=100' }
-      ],
-      storeInfo: {
-        name: 'Green Grocery',
-        ownerName: 'Mrs. Pooja Verma',
-        phone: '+91 11 9876 5432',
-        email: 'greengrocery@store.com',
-        address: '789 Green Park, New Delhi - 110016'
-      },
-      deliveryBoyInfo: null
-    }
-  ]);
+const [orders, setOrders] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [search, setSearch] = useState('');
+    const [selectedOrder, setSelectedOrder] = useState(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage] = useState(10);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalOrders, setTotalOrders] = useState(0);
+    const [stats, setStats] = useState({ total: 0, delivered: 0, pending: 0, processing: 0, shipped: 0 });
 
-  const [search, setSearch] = useState('');
-  const [selectedOrder, setSelectedOrder] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+    // Fetch orders stats (for summary cards)
+    useEffect(() => {
+       const fetchOrderStats = async () => {
+         try {
+           const token = localStorage.getItem('token');
+           const response = await api.get('/admin/orders/stats', {
+             headers: {
+               Authorization: `Bearer ${token}`
+             }
+           });
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'delivered': return 'bg-emerald-500/15 text-emerald-700 ring-1 ring-emerald-500/20 dark:bg-emerald-400/10 dark:text-emerald-300';
-      case 'pending': return 'bg-yellow-500/15 text-yellow-700 ring-1 ring-yellow-500/20 dark:bg-yellow-400/10 dark:text-yellow-300';
-      case 'processing': return 'bg-blue-500/15 text-blue-700 ring-1 ring-blue-500/20 dark:bg-blue-400/10 dark:text-blue-300';
-      case 'shipped': return 'bg-violet-500/15 text-violet-700 ring-1 ring-violet-500/20 dark:bg-violet-400/10 dark:text-violet-300';
-      default: return 'bg-slate-100/50 text-slate-600';
-    }
-  };
+           if (response.data.success) {
+             setStats(response.data.stats);
+           }
+         } catch (error) {
+           console.error('Failed to fetch order stats:', error);
+         }
+       };
 
-  const formatCurrency = (amount) => `₹${amount.toLocaleString('en-IN')}`;
+       fetchOrderStats();
+    }, []);
 
-  const filteredOrders = useMemo(() => {
-    if (!search) return orders;
-    return orders.filter(o => 
-      o.orderNo.toLowerCase().includes(search.toLowerCase()) ||
-      o.customer.toLowerCase().includes(search.toLowerCase())
-    );
-  }, [orders, search]);
+    // Fetch paginated orders for table
+    useEffect(() => {
+       const fetchOrders = async () => {
+         try {
+           setLoading(true);
+           const token = localStorage.getItem('token');
+           const response = await api.get('/admin/orders', {
+             headers: {
+               Authorization: `Bearer ${token}`
+             },
+             params: {
+               search,
+               page: currentPage,
+               limit: itemsPerPage
+             }
+           });
 
-  const stats = useMemo(() => {
-    const total = orders.length;
-    const delivered = orders.filter(o => o.status === 'delivered').length;
-    const pending = orders.filter(o => o.status === 'pending').length;
-    const processing = orders.filter(o => o.status === 'processing').length;
-    const shipped = orders.filter(o => o.status === 'shipped').length;
-    return { total, delivered, pending, processing, shipped };
-  }, [orders]);
+           if (response.data.success) {
+             setOrders(response.data.orders);
+             setTotalPages(response.data.pagination.totalPages);
+             setTotalOrders(response.data.pagination.total);
+           }
+         } catch (error) {
+           console.error('Failed to fetch orders:', error);
+         } finally {
+           setLoading(false);
+         }
+       };
 
-  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
-  const paginatedOrders = filteredOrders.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+       const timer = setTimeout(fetchOrders, 300); // Debounce
+       return () => clearTimeout(timer);
+     }, [search, currentPage, itemsPerPage]);
+
+    const getStatusColor = (status) => {
+     switch (status) {
+       case 'delivered': return 'bg-emerald-500/15 text-emerald-700 ring-1 ring-emerald-500/20 dark:bg-emerald-400/10 dark:text-emerald-300';
+       case 'pending': return 'bg-yellow-500/15 text-yellow-700 ring-1 ring-yellow-500/20 dark:bg-yellow-400/10 dark:text-yellow-300';
+       case 'processing': return 'bg-blue-500/15 text-blue-700 ring-1 ring-blue-500/20 dark:bg-blue-400/10 dark:text-blue-300';
+       case 'shipped': return 'bg-violet-500/15 text-violet-700 ring-1 ring-violet-500/20 dark:bg-violet-400/10 dark:text-violet-300';
+       default: return 'bg-slate-100/50 text-slate-600';
+     }
+   };
+
+   const formatCurrency = (amount) => {
+     const value = Number(amount) || 0;
+     const formatted = Math.abs(value).toLocaleString('en-IN');
+     return value < 0 ? `-₹${formatted}` : `₹${formatted}`;
+   };
+
+   const getOrderTracking = (status) => {
+     const steps = [
+       { label: 'Order Placed', key: 'pending' },
+       { label: 'Order Confirmed', key: 'confirmed' },
+       { label: 'Preparing Order', key: 'processing' },
+       { label: 'Out for Delivery', key: 'out_for_delivery' },
+       { label: 'Delivered', key: 'delivered' }
+     ];
+
+     const currentIndex = steps.findIndex(step => step.key === status);
+     return steps.map((step, idx) => ({
+       status: step.label,
+       completed: currentIndex >= idx && currentIndex !== -1,
+       time: ''
+     }));
+   };
+
+   const filteredOrders = useMemo(() => {
+     if (!search) return orders;
+     return orders.filter(o => 
+       o.orderNo.toLowerCase().includes(search.toLowerCase()) ||
+       o.customer.toLowerCase().includes(search.toLowerCase())
+     );
+   }, [orders, search]);
+
+   // For pagination info display
+   const shownOrders = orders.length;
 
   const openModal = (order) => {
     setSelectedOrder(order);
@@ -143,11 +169,12 @@ const Orders = () => {
   };
 
   const Modal = ({ order, onClose }) => {
-    const subtotal = order.items?.reduce((sum, item) => sum + item.price * item.quantity, 0) || 0;
-    const discount = order.items?.reduce((sum, item) => sum + (item.mrp - item.price) * item.quantity, 0) || 0;
-    const deliveryCharge = 20;
-    const gst = Math.round((subtotal - discount) * 0.05);
-    const totalBill = subtotal - discount + deliveryCharge + gst;
+    const subtotal = order.subtotal != null ? parseFloat(order.subtotal) : order.items?.reduce((sum, item) => sum + item.price * item.quantity, 0) || 0;
+    const discount = order.discount != null ? parseFloat(order.discount) : 0;
+    const deliveryCharge = order.deliveryCharge != null ? parseFloat(order.deliveryCharge) : 0;
+    const gst = order.tax != null ? parseFloat(order.tax) : 0;
+    const commission = order.commission != null ? parseFloat(order.commission) : 0;
+    const totalBill = order.total != null ? parseFloat(order.total) : subtotal - discount + deliveryCharge + gst;
 
     return createPortal(
       <div className="fixed inset-0 z-50 flex min-h-screen items-center justify-center p-4" onClick={onClose}>
@@ -265,33 +292,53 @@ const Orders = () => {
                   </div>
 </div>
 
+                  <div className="rounded-xl border-2 border-cyan-200/50 bg-gradient-to-br from-cyan-50/80 to-blue-50/80 p-5 shadow-xl shadow-cyan-500/10 backdrop-blur-xl dark:border-cyan-400/30 dark:from-cyan-900/40 dark:to-blue-900/40">
+                    <h3 className="font-display text-base font-extrabold text-slate-950 dark:text-white mb-4 flex items-center gap-2">
+                      <FiCreditCard size={18} className="text-cyan-600" /> Payment Details
+                    </h3>
+                    <div className="space-y-3 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">Payment Status:</span>
+                        <span className="font-medium capitalize">{order.paymentStatus || 'N/A'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">Payment Method:</span>
+                        <span className="font-medium uppercase">{order.paymentMethod || 'N/A'}</span>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="rounded-xl border-2 border-rose-200/50 bg-gradient-to-br from-rose-50/80 to-red-50/80 p-5 shadow-xl shadow-rose-500/10 backdrop-blur-xl dark:border-rose-400/30 dark:from-rose-900/40 dark:to-red-900/40">
                     <h3 className="font-display text-base font-extrabold text-slate-950 dark:text-white mb-4 flex items-center gap-2">
                       <FiFileText size={18} className="text-rose-600" /> Billing Summary
                     </h3>
-                  <div className="space-y-3 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-slate-600">Subtotal:</span>
-                      <span className="font-medium">{formatCurrency(subtotal)}</span>
-                    </div>
-                    <div className="flex justify-between text-emerald-600">
-                      <span>Discount:</span>
-                      <span className="font-medium">-{formatCurrency(discount)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-600">Delivery Charge:</span>
-                      <span className="font-medium">{formatCurrency(deliveryCharge)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-600">GST (5%):</span>
-                      <span className="font-medium">{formatCurrency(gst)}</span>
-                    </div>
-                    <div className="border-t border-slate-200 pt-3 flex justify-between">
-                      <span className="font-bold text-slate-900 dark:text-white">Total Bill:</span>
-                      <span className="font-bold text-xl text-emerald-700 dark:text-emerald-300">{formatCurrency(totalBill)}</span>
+                    <div className="space-y-3 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">Subtotal:</span>
+                        <span className="font-medium">{formatCurrency(subtotal)}</span>
+                      </div>
+                      <div className="flex justify-between text-emerald-600">
+                        <span>Discount:</span>
+                        <span className="font-medium">{discount ? `- ${formatCurrency(discount)}` : formatCurrency(0)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">Delivery Charge:</span>
+                        <span className="font-medium">{formatCurrency(deliveryCharge)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">GST (5%):</span>
+                        <span className="font-medium">{formatCurrency(gst)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">Commission:</span>
+                        <span className="font-medium">{formatCurrency(commission)}</span>
+                      </div>
+                      <div className="border-t border-slate-200 pt-3 flex justify-between">
+                        <span className="font-bold text-slate-900 dark:text-white">Total Bill:</span>
+                        <span className="font-bold text-xl text-emerald-700 dark:text-emerald-300">{formatCurrency(totalBill)}</span>
+                      </div>
                     </div>
                   </div>
-</div>
 
 <div className="rounded-xl border-2 border-violet-200/50 bg-gradient-to-br from-violet-50/80 to-purple-50/80 p-5 shadow-xl shadow-violet-500/10 backdrop-blur-xl dark:border-violet-400/30 dark:from-violet-900/40 dark:to-purple-900/40">
                     <h3 className="font-display text-base font-extrabold text-slate-950 dark:text-white mb-4 flex items-center gap-2">
@@ -299,7 +346,7 @@ const Orders = () => {
                     </h3>
                     <div className="px-2">
                       <div className="flex items-center justify-between">
-                        {initialOrder.tracking.map((track, idx) => (
+                        {(order.tracking ?? getOrderTracking(order.status)).map((track, idx, trackingArray) => (
                           <Fragment key={idx}>
                             <div className="flex flex-col items-center">
                               <div className={`flex h-10 w-10 items-center justify-center rounded-full border-2 ${track.completed ? 'border-violet-500 bg-violet-100 text-violet-700 dark:bg-violet-400/20 dark:text-violet-300' : 'border-slate-300 bg-slate-100 text-slate-400 dark:border-slate-600 dark:bg-slate-800'}`}>
@@ -308,8 +355,8 @@ const Orders = () => {
                               <p className={`mt-2 text-xs font-semibold text-center ${track.completed ? 'text-slate-700 dark:text-white' : 'text-slate-500 dark:text-slate-400'} max-w-20`}>{track.status}</p>
                               <p className="text-[10px] text-slate-400 dark:text-slate-500">{track.time}</p>
                             </div>
-                            {idx < initialOrder.tracking.length - 1 && (
-                              <div className={`flex-1 h-1 mx-2 ${track.completed && initialOrder.tracking[idx + 1]?.completed ? 'bg-violet-500' : 'bg-slate-300 dark:bg-slate-600'}`} />
+                            {idx < trackingArray.length - 1 && (
+                              <div className={`flex-1 h-1 mx-2 ${track.completed && trackingArray[idx + 1]?.completed ? 'bg-violet-500' : 'bg-slate-300 dark:bg-slate-600'}`} />
                             )}
                           </Fragment>
                         ))}
@@ -433,60 +480,60 @@ const Orders = () => {
                 <th className="text-right py-4 px-3 font-semibold">Actions</th>
               </tr>
             </thead>
-            <tbody>
-              {paginatedOrders.map((order) => (
-                <tr key={order.id} className="border-b border-gray-100/50 dark:border-gray-800/50 hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-all">
-                  <td className="py-4 px-3 font-medium">{order.orderNo}</td>
-                  <td className="py-4 px-3">
-                    <div>
-                      <p className="font-medium text-slate-950 dark:text-white">{order.customer}</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">{order.customerPhone}</p>
-                    </div>
-                  </td>
-                  <td className="py-4 px-3 text-slate-600 dark:text-slate-400">{order.store}</td>
-                  <td className="py-4 px-3 text-slate-600 dark:text-slate-400">{order.itemsCount} items</td>
-                  <td className="py-4 px-3 font-bold text-emerald-700 dark:text-emerald-300">{formatCurrency(order.amount)}</td>
-                  <td className="py-4 px-3">
-                    <span className={`status-pill capitalize ${getStatusColor(order.status)}`}>
-                      {order.status}
-                    </span>
-                  </td>
-                  <td className="py-4 px-3 text-right">
-                    <button onClick={() => openModal(order)} className="ghost-button">
-                      <FiEye size={16} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
+             <tbody>
+               {orders.map((order) => (
+                 <tr key={order.id} className="border-b border-gray-100/50 dark:border-gray-800/50 hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-all">
+                   <td className="py-4 px-3 font-medium">{order.orderNo}</td>
+                   <td className="py-4 px-3">
+                     <div>
+                       <p className="font-medium text-slate-950 dark:text-white">{order.customer}</p>
+                       <p className="text-xs text-slate-500 dark:text-slate-400">{order.customerPhone}</p>
+                     </div>
+                   </td>
+                   <td className="py-4 px-3 text-slate-600 dark:text-slate-400">{order.store}</td>
+                   <td className="py-4 px-3 text-slate-600 dark:text-slate-400">{order.itemsCount} items</td>
+                   <td className="py-4 px-3 font-bold text-emerald-700 dark:text-emerald-300">{formatCurrency(order.amount)}</td>
+                   <td className="py-4 px-3">
+                     <span className={`status-pill capitalize ${getStatusColor(order.status)}`}>
+                       {order.status}
+                     </span>
+                   </td>
+                   <td className="py-4 px-3 text-right">
+                     <button onClick={() => openModal(order)} className="ghost-button">
+                       <FiEye size={16} />
+                     </button>
+                   </td>
+                 </tr>
+               ))}
+             </tbody>
           </table>
         </div>
 
-        {totalPages > 1 && (
-          <div className="border-t border-slate-100 p-4 dark:border-white/5">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                Page {currentPage} of {totalPages}
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="icon-button h-9 w-9 disabled:opacity-50"
-                >
-                  <FiChevronLeft size={16} />
-                </button>
-                <button
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                  className="icon-button h-9 w-9 disabled:opacity-50"
-                >
-                  <FiChevronRight size={16} />
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+         {totalPages > 1 && (
+           <div className="border-t border-slate-100 p-4 dark:border-white/5">
+             <div className="flex items-center justify-between">
+               <p className="text-sm text-slate-500 dark:text-slate-400">
+                 Showing {(currentPage - 1) * itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, totalOrders)} of {totalOrders} orders
+               </p>
+               <div className="flex gap-2">
+                 <button
+                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                   disabled={currentPage === 1}
+                   className="icon-button h-9 w-9 disabled:opacity-50"
+                 >
+                   <FiChevronLeft size={16} />
+                 </button>
+                 <button
+                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                   disabled={currentPage === totalPages}
+                   className="icon-button h-9 w-9 disabled:opacity-50"
+                 >
+                   <FiChevronRight size={16} />
+                 </button>
+               </div>
+             </div>
+           </div>
+         )}
       </section>
 
       {selectedOrder && <Modal order={selectedOrder} onClose={closeModal} />}

@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import {
   FiAlertTriangle,
@@ -155,6 +156,24 @@ const Dashboard = () => {
     slate: 'bg-slate-100 text-slate-800 ring-slate-200 dark:bg-white/10 dark:text-slate-100 dark:ring-white/10',
     amber: 'bg-accent-50 text-accent-700 ring-accent-100 dark:bg-accent-400/10 dark:text-accent-200 dark:ring-accent-400/15',
     indigo: 'bg-secondary-100 text-primary-700 ring-secondary-200 dark:bg-primary-400/10 dark:text-primary-200 dark:ring-primary-400/15'
+  };
+
+  const navigate = useNavigate();
+
+  const handleAlertAction = (type) => {
+    switch (type) {
+      case 'Review':
+        navigate('/vendors');
+        break;
+      case 'Act':
+        navigate('/orders');
+        break;
+      case 'Watch':
+        navigate('/dashboard');
+        break;
+      default:
+        navigate('/dashboard');
+    }
   };
 
   const KpiCard = ({ item }) => {
@@ -324,7 +343,7 @@ const Dashboard = () => {
                <h2 className="font-display text-xl font-extrabold text-slate-950 dark:text-white">Top Vendor Health</h2>
                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Revenue, ratings, and fulfillment strength</p>
              </div>
-             <button className="ghost-button px-3">Manage</button>
+             <button className="ghost-button px-3 cursor-pointer" onClick={() => navigate('/vendors')}>Manage</button>
            </div>
 
            <div className="space-y-4">
@@ -385,7 +404,10 @@ const Dashboard = () => {
                         <p className="text-sm text-slate-500 dark:text-slate-400">{alert.meta}</p>
                       </div>
                     </div>
-                    <button className="ghost-button shrink-0 px-3">{alert.type}</button>
+                    <button 
+                      onClick={() => handleAlertAction(alert.type)}
+                      className="ghost-button shrink-0 px-3 cursor-pointer"
+                    >{alert.type}</button>
                   </div>
                 );
               })}
