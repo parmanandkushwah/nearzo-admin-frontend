@@ -26,10 +26,25 @@ const getInputFile = (fileInput) => {
   return null;
 };
 
+const getFirstVariant = (product) => product.variants?.[0] || null;
+
 const getProductPreviewImage = (product) => {
   const mainImage = product.images?.[0]?.url;
   if (mainImage) return mainImage;
+  const firstVariantImage = getFirstVariant(product)?.image;
+  if (firstVariantImage) return firstVariantImage;
   return product.variants?.find((v) => v.image)?.image || null;
+};
+
+const getProductDisplayMrp = (product) => {
+  if (product.mrp) return product.mrp;
+  if (product.price != null && product.price !== '') return `Rs ${product.price}`;
+
+  const firstVariant = getFirstVariant(product);
+  if (firstVariant?.mrp) return firstVariant.mrp;
+  if (firstVariant?.price != null && firstVariant?.price !== '') return `Rs ${firstVariant.price}`;
+
+  return '-';
 };
 
 const mapProductToForm = (product) => ({
@@ -186,15 +201,15 @@ const MasterProducts = () => {
       let variantImageIndex = 0;
 
       (data.variants || [])
-        .filter(v => v.name)
-        .forEach((variant) => {
+        .filter((v) => v.name?.trim() || v.mrp || getInputFile(v.imageFile) || (v.image && !v.image.startsWith('blob:')))
+        .forEach((variant, idx) => {
           const imageFile = getInputFile(variant.imageFile);
           const existingVariantImage = variant.image?.startsWith('blob:')
             ? null
             : (variant.image || null);
           const variantPayload = {
             id: variant.id,
-            name: variant.name,
+            name: variant.name?.trim() || (idx === 0 ? 'Default' : `Variant ${idx + 1}`),
             mrp: variant.mrp,
             image: imageFile ? null : (selectedProduct ? existingVariantImage : null)
           };
@@ -295,7 +310,7 @@ const MasterProducts = () => {
   const DetailModal = ({ product, onClose }) => {
     const productImages = product ? (product.images || product.ProductImages || []).filter(img => img?.url) : [];
     const variants = product?.variants || [];
-    const primaryImage = productImages[0]?.url || variants.find(v => v.image)?.image || '';
+    const primaryImage = getProductPreviewImage(product) || '';
     const [activeImage, setActiveImage] = useState(primaryImage);
 
     useEffect(() => {
@@ -306,7 +321,7 @@ const MasterProducts = () => {
 
     const categoryName = product.ProductCategory?.name || getCategoryName(product.productCategoryId);
     const subCategoryName = product.ProductSubCategory?.name || getSubCategoryName(product.productSubCategoryId);
-    const displayPrice = product.mrp || (product.price ? `Rs ${product.price}` : '-');
+    const displayPrice = getProductDisplayMrp(product);
 
 return createPortal(
        <div className="fixed inset-0 z-50 flex min-h-screen items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm">
@@ -640,7 +655,7 @@ return createPortal(
                   </td>
                   <td className="py-4 px-3 text-slate-600 dark:text-gray-400">{getCategoryName(product.productCategoryId)}</td>
                   <td className="py-4 px-3 text-slate-600 dark:text-gray-400">{getSubCategoryName(product.productSubCategoryId)}</td>
-                  <td className="py-4 px-3 font-semibold text-slate-950 dark:text-white">{product.mrp || (product.price ? `Rs ${product.price}` : '-')}</td>
+                  <td className="py-4 px-3 font-semibold text-slate-950 dark:text-white">{getProductDisplayMrp(product)}</td>
                   <td className="py-4 px-3">
                     <span className="status-pill bg-primary-50 text-primary-700 ring-1 ring-primary-100 dark:bg-primary-400/10 dark:text-primary-300">
                       {product.variants?.length || 1} Variant{product.variants?.length > 1 ? 's' : ''}
