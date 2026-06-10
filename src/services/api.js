@@ -32,10 +32,16 @@ const baseURL = resolveApiBaseUrl();
 
 export const getMediaUrl = (path) => {
   if (!path) return '';
-  if (/^(https?:|blob:)/i.test(path)) return path;
 
+  // Agar already full URL hai to wahi return karo
+  if (/^(https?:|blob:)/i.test(path)) {
+    return path;
+  }
+
+  const baseUrl = import.meta.env.VITE_IMAGE_UPLOAD_URL?.replace(/\/$/, '');
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-  return `${resolveBackendOrigin()}${normalizedPath}`;
+
+  return `${baseUrl}${normalizedPath}`;
 };
 
 const api = axios.create({
