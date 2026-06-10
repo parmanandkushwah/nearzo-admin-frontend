@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
-import api from '../../services/api';
+import api, { getMediaUrl } from '../../services/api';
 import { FiPlus, FiEdit, FiTrash2, FiShoppingBag, FiSearch, FiTag, FiPackage, FiDollarSign, FiImage, FiUpload, FiTrash, FiChevronLeft, FiChevronRight, FiFolder, FiX, FiEye, FiLoader } from 'react-icons/fi';
 
 const initialProduct = {
@@ -26,23 +26,41 @@ const getInputFile = (fileInput) => {
   return null;
 };
 
-const getFirstVariant = (product) => product.variants?.[0] || null;
+const getProductVariants = (product) => {
+  const variants = product?.variants;
+  if (Array.isArray(variants)) return variants;
+  if (typeof variants === 'string') {
+    try {
+      const parsed = JSON.parse(variants);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+};
+
+const getFirstVariant = (product) => getProductVariants(product)[0] || null;
+
+const hasDisplayMrp = (value) =>
+  value != null && value !== '' && value !== 'null' && value !== 'undefined';
 
 const getProductPreviewImage = (product) => {
   const mainImage = product.images?.[0]?.url;
-  if (mainImage) return mainImage;
+  if (mainImage) return getMediaUrl(mainImage);
   const firstVariantImage = getFirstVariant(product)?.image;
-  if (firstVariantImage) return firstVariantImage;
-  return product.variants?.find((v) => v.image)?.image || null;
+  if (firstVariantImage) return getMediaUrl(firstVariantImage);
+  const fallbackVariantImage = getProductVariants(product).find((v) => v.image)?.image;
+  return fallbackVariantImage ? getMediaUrl(fallbackVariantImage) : null;
 };
 
 const getProductDisplayMrp = (product) => {
-  if (product.mrp) return product.mrp;
-  if (product.price != null && product.price !== '') return `Rs ${product.price}`;
+  if (hasDisplayMrp(product.mrp)) return product.mrp;
+  if (hasDisplayMrp(product.price)) return `Rs ${product.price}`;
 
   const firstVariant = getFirstVariant(product);
-  if (firstVariant?.mrp) return firstVariant.mrp;
-  if (firstVariant?.price != null && firstVariant?.price !== '') return `Rs ${firstVariant.price}`;
+  if (hasDisplayMrp(firstVariant?.mrp)) return firstVariant.mrp;
+  if (hasDisplayMrp(firstVariant?.price)) return `Rs ${firstVariant.price}`;
 
   return '-';
 };
@@ -360,10 +378,9 @@ return createPortal(
                   <div className="flex aspect-[4/3] items-center justify-center overflow-hidden rounded-lg bg-slate-100 dark:bg-slate-900">
                     {activeImage ? (
                       <img
-                        src={activeImage}
+                        src={getMediaUrl(activeImage)}
                         alt={product.name}
                         className="h-full w-full object-cover"
-                        crossOrigin="anonymous"
                       />
                     ) : (
                       <div className="flex h-full w-full flex-col items-center justify-center text-slate-400 dark:text-slate-500">
@@ -379,7 +396,7 @@ return createPortal(
                         <button
                           key={`${img.url}-${idx}`}
                           type="button"
-                          onClick={() => setActiveImage(img.url)}
+                          onClick={() => setActiveImage(getMediaUrl(img.url))}
                           className={`aspect-square overflow-hidden rounded-lg border bg-white p-1 transition-all dark:bg-white/[0.04] ${
                             activeImage === img.url
                               ? 'border-primary-500 ring-4 ring-primary-500/15'
@@ -387,10 +404,9 @@ return createPortal(
                           }`}
                         >
                           <img
-                            src={img.url}
+                            src={getMediaUrl(img.url)}
                             alt={img.alt || `${product.name} ${idx + 1}`}
                             className="h-full w-full rounded-md object-cover"
-                            crossOrigin="anonymous"
                           />
                         </button>
                       ))}
@@ -473,15 +489,14 @@ return createPortal(
                           <div className="flex gap-3 p-3">
                             <button
                               type="button"
-                              onClick={() => variant.image && setActiveImage(variant.image)}
+                              onClick={() => variant.image && setActiveImage(getMediaUrl(variant.image))}
                               className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-100 text-slate-400 ring-1 ring-slate-200/80 dark:bg-slate-900 dark:ring-white/10"
                             >
                               {variant.image ? (
                                 <img
-                                  src={variant.image}
+                                  src={getMediaUrl(variant.image)}
                                   alt={variant.name || `Variant ${idx + 1}`}
                                   className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                                  crossOrigin="anonymous"
                                 />
                               ) : (
                                 <FiImage size={20} />
@@ -636,7 +651,7 @@ return createPortal(
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 rounded-lg bg-slate-100 dark:bg-slate-800 overflow-hidden flex-shrink-0">
                         {previewImage ? (
-                          <img src={previewImage} alt={product.name} className="h-full w-full object-cover" crossOrigin="anonymous" />
+                          <img src={previewImage} alt={product.name} className="h-full w-full object-cover" />
                         ) : (
                           <div className="flex h-full w-full items-center justify-center text-slate-400">
                             <FiImage size={16} />
@@ -839,7 +854,7 @@ return createPortal(
                       const imageFile = getInputFile(watch(`images.${index}.file`));
                       const filePreview = imageFile ? URL.createObjectURL(imageFile) : null;
                       const existingUrl = watch(`images.${index}.url`);
-                      const previewSrc = filePreview || existingUrl || null;
+                      const previewSrc = filePreview || (existingUrl ? getMediaUrl(existingUrl) : null);
                       const hasFile = !!imageFile;
                       return (
                         <div key={field.id} className="flex gap-2">
@@ -969,10 +984,9 @@ return createPortal(
                           {watch(`variants.${index}.image`) && (
                             <div className="mt-3 flex items-center gap-3 rounded-lg bg-white/80 p-2 ring-1 ring-slate-200/80 dark:bg-white/[0.05] dark:ring-white/10">
                               <img
-                                src={watch(`variants.${index}.image`)}
+                                src={getMediaUrl(watch(`variants.${index}.image`))}
                                 alt={`Variant ${index + 1}`}
                                 className="h-12 w-12 rounded-lg object-cover"
-                                crossOrigin="anonymous"
                               />
                               <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                                 {getInputFile(watch(`variants.${index}.imageFile`)) ? 'Preview - image will be uploaded on save.' : 'Current image. Choose new file to replace.'}
