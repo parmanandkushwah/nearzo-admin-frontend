@@ -29,12 +29,10 @@ const initialForm = {
   area: '',
   category: 'Grocery',
   status: 'pending',
-  orders: 0,
-  revenue: 'Rs 0',
-  rating: 0,
-  avgDeliveryTime: 0,
-  onTimeRate: 0,
-  activeRiders: 0
+  email: '',
+  shopRegisterNo: '',
+  gstNo: '',
+  password: ''
 };
 
 const Vendors = () => {
@@ -164,61 +162,98 @@ const Vendors = () => {
   const onSubmit = async (data) => {
     try {
       const token = localStorage.getItem('token');
-      const payload = {
-        shopName: data.shopName,
-        owner: data.owner,
-        phone: data.phone,
-        area: data.area,
-        category: data.category,
-        status: data.status,
-        orders: Number(data.orders) || 0,
-        rating: Number(data.rating) || 0,
-        avgDeliveryTime: Number(data.avgDeliveryTime) || 0,
-        onTimeRate: Number(data.onTimeRate) || 0,
-        activeRiders: Number(data.activeRiders) || 0
-      };
+      const hasFiles = data.shopImage?.[0] || data.aadharFront?.[0] || data.aadharBack?.[0] || data.shopRegisterDoc?.[0];
 
-      if (editingVendor) {
-        // Update existing vendor
-        const response = await api.put(
-          `/admin/vendors/${editingVendor.id}`,
-          payload,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
+      if (hasFiles) {
+        const formData = new FormData();
+        formData.append('shopName', data.shopName || '');
+        formData.append('ownerName', data.owner || '');
+        formData.append('email', data.email || '');
+        formData.append('phone', data.phone || '');
+        formData.append('area', data.area || '');
+        formData.append('category', data.category || '');
+        formData.append('status', data.status || 'pending');
+        if (data.password) formData.append('password', data.password);
+        if (data.shopRegisterNo) formData.append('shopRegisterNo', data.shopRegisterNo);
+        if (data.gstNo) formData.append('gstNo', data.gstNo);
+        if (data.shopImage?.[0]) formData.append('shopImage', data.shopImage[0]);
+        if (data.aadharFront?.[0]) formData.append('aadharFront', data.aadharFront[0]);
+        if (data.aadharBack?.[0]) formData.append('aadharBack', data.aadharBack[0]);
+        if (data.shopRegisterDoc?.[0]) formData.append('shopRegisterImage', data.shopRegisterDoc[0]);
+
+        const endpoint = editingVendor ? `/admin/vendors/${editingVendor.id}` : '/admin/vendors';
+        const method = editingVendor ? 'put' : 'post';
+        const response = await api[method](endpoint, formData, {
+          headers: {
+            Authorization: `Bearer ${token}`
           }
-        );
+        });
 
         if (response.data.success) {
-          setVendors((current) =>
-            current.map((vendor) =>
-              vendor.id === editingVendor.id
-                ? { ...vendor, ...response.data.vendor }
-                : vendor
-            )
-          );
-          alert('Vendor updated successfully');
+          if (editingVendor) {
+            setVendors((current) =>
+              current.map((vendor) =>
+                vendor.id === editingVendor.id
+                  ? { ...vendor, ...response.data.vendor }
+                  : vendor
+              )
+            );
+            alert('Vendor updated successfully');
+          } else {
+            setVendors((current) => [response.data.vendor, ...current]);
+            alert('Vendor created successfully');
+          }
         }
       } else {
-        // Create new vendor
-        const response = await api.post(
-          '/admin/vendors',
-          {
-            ...payload,
-            email: `vendor-${Date.now()}@example.com`,
-            password: 'DefaultPassword123'
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
-          }
-        );
+        const payload = {
+          shopName: data.shopName,
+          owner: data.owner,
+          phone: data.phone,
+          area: data.area,
+          category: data.category,
+          status: data.status,
+          email: data.email,
+          password: data.password,
+          shopRegisterNo: data.shopRegisterNo,
+          gstNo: data.gstNo
+        };
 
-        if (response.data.success) {
-          setVendors((current) => [response.data.vendor, ...current]);
-          alert('Vendor created successfully');
+        if (editingVendor) {
+          const response = await api.put(
+            `/admin/vendors/${editingVendor.id}`,
+            payload,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`
+              }
+            }
+          );
+
+          if (response.data.success) {
+            setVendors((current) =>
+              current.map((vendor) =>
+                vendor.id === editingVendor.id
+                  ? { ...vendor, ...response.data.vendor }
+                  : vendor
+              )
+            );
+            alert('Vendor updated successfully');
+          }
+        } else {
+          const response = await api.post(
+            '/admin/vendors',
+            payload,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`
+              }
+            }
+          );
+
+          if (response.data.success) {
+            setVendors((current) => [response.data.vendor, ...current]);
+            alert('Vendor created successfully');
+          }
         }
       }
 
@@ -568,70 +603,158 @@ const Vendors = () => {
 
             <div className="flex-1 min-h-0 overflow-y-auto p-6 modal-scroll">
               <div className="space-y-5">
-<div className="rounded-xl border border-slate-200/80 bg-white/80 p-5 shadow-lg backdrop-blur dark:border-white/10 dark:bg-white/[0.04]">
-                   <h3 className="font-display text-base font-extrabold text-slate-950 dark:text-white">Business Details</h3>
-                   <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                     <FormField label="Shop Name">
-                       <input {...register('shopName')} required className="input-premium h-11 w-full px-4" />
-                     </FormField>
-                     <FormField label="Owner Name">
-                       <input {...register('owner')} required className="input-premium h-11 w-full px-4" />
-                     </FormField>
-                     <FormField label="Phone">
-                       <input {...register('phone')} className="input-premium h-11 w-full px-4" />
-                     </FormField>
-                     <FormField label="Area">
-                       <input {...register('area')} className="input-premium h-11 w-full px-4" />
-                     </FormField>
-<FormField label="Category">
-                        <select {...register('category')} className="input-premium h-11 w-full px-4">
-                          <option value="">Select Category</option>
-                          {shopCategories.map(cat => (
-                            <option key={cat.id} value={cat.shopCategoryName}>
-                              {cat.shopCategoryName}
-                            </option>
-                          ))}
-                        </select>
-                      </FormField>
-                     <FormField label="Status">
-                       <select {...register('status')} className="input-premium h-11 w-full px-4">
-                         <option value="approved">Approved</option>
-                         <option value="pending">Pending</option>
-                         <option value="rejected">Rejected</option>
-                       </select>
-                     </FormField>
-                   </div>
-                 </div>
+                <div className="rounded-xl border border-slate-200/80 bg-white/80 p-5 shadow-lg backdrop-blur dark:border-white/10 dark:bg-white/[0.04]">
+                  <h3 className="font-display text-base font-extrabold text-slate-950 dark:text-white">Shop Image</h3>
+                  <div className="mt-4">
+                    <label className="flex items-center justify-center gap-3 rounded-lg border border-dashed border-slate-300 bg-slate-50/60 p-6 cursor-pointer hover:border-primary-300 hover:bg-primary-50/50 dark:border-white/10 dark:bg-white/[0.04] dark:hover:bg-white/[0.08]">
+                      <FiUpload size={20} className="text-slate-400" />
+                      <span className="text-sm font-bold text-slate-600 dark:text-slate-300">
+                        {editingVendor?.logo ? 'Change shop image' : 'Upload shop image'}
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        {...register('shopImage')}
+                        className="sr-only"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const previewUrl = URL.createObjectURL(file);
+                            setValue('shopImage', [file]);
+                          }
+                        }}
+                      />
+                    </label>
+                    {watch('shopImage')?.[0] && (
+                      <div className="mt-3 flex items-center gap-3 rounded-lg bg-white/80 p-2 ring-1 ring-slate-200/80 dark:bg-white/[0.05] dark:ring-white/10">
+                        <img
+                          src={URL.createObjectURL(watch('shopImage')[0])}
+                          alt="Shop preview"
+                          className="h-16 w-16 rounded-lg object-cover"
+                        />
+                        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                          {editingVendor?.logo ? 'New image will be uploaded on save.' : 'Preview - image will be uploaded on save.'}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
 
-                 <div className="rounded-xl border border-slate-200/80 bg-white/80 p-5 shadow-lg backdrop-blur dark:border-white/10 dark:bg-white/[0.04]">
-                   <h3 className="font-display text-base font-extrabold text-slate-950 dark:text-white">Performance Metrics</h3>
-                   <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                     <FormField label="Orders">
-                       <input type="number" {...register('orders')} className="input-premium h-11 w-full px-4" />
-                     </FormField>
-                     <FormField label="Revenue">
-                       <input {...register('revenue')} className="input-premium h-11 w-full px-4" />
-                     </FormField>
-                     <FormField label="Rating">
-                       <input type="number" step="0.1" min="0" max="5" {...register('rating')} className="input-premium h-11 w-full px-4" />
-                     </FormField>
-                     <FormField label="Active Riders">
-                       <input type="number" min="0" {...register('activeRiders')} className="input-premium h-11 w-full px-4" />
-                     </FormField>
-                     <FormField label="Avg Delivery Time">
-                       <div className="relative">
-                         <input type="number" min="0" {...register('avgDeliveryTime')} className="input-premium h-11 w-full px-4 pr-14" />
-                         <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">min</span>
-                       </div>
-                     </FormField>
-                     <FormField label="On-time Delivery Rate">
-                       <div className="relative">
-                         <input type="number" min="0" max="100" {...register('onTimeRate')} className="input-premium h-11 w-full px-4 pr-12" />
-                         <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">%</span>
-                       </div>
-                     </FormField>
-                   </div>
-                 </div>
+                <div className="rounded-xl border border-slate-200/80 bg-white/80 p-5 shadow-lg backdrop-blur dark:border-white/10 dark:bg-white/[0.04]">
+                  <h3 className="font-display text-base font-extrabold text-slate-950 dark:text-white mb-4">Business Details</h3>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <FormField label="Shop Name">
+                      <input {...register('shopName')} required className="input-premium h-11 w-full px-4" />
+                    </FormField>
+                    <FormField label="Owner Name">
+                      <input {...register('owner')} required className="input-premium h-11 w-full px-4" />
+                    </FormField>
+                    <FormField label="Email">
+                      <input type="email" {...register('email')} required className="input-premium h-11 w-full px-4" />
+                    </FormField>
+                    <FormField label="Phone">
+                      <input {...register('phone')} className="input-premium h-11 w-full px-4" />
+                    </FormField>
+                    <FormField label="Area">
+                      <input {...register('area')} className="input-premium h-11 w-full px-4" />
+                    </FormField>
+                    <FormField label="Category">
+                      <select {...register('category')} className="input-premium h-11 w-full px-4">
+                        <option value="">Select Category</option>
+                        {shopCategories.map(cat => (
+                          <option key={cat.id} value={cat.shopCategoryName}>
+                            {cat.shopCategoryName}
+                          </option>
+                        ))}
+                      </select>
+                    </FormField>
+                    <FormField label="GST Number">
+                      <input {...register('gstNo')} className="input-premium h-11 w-full px-4" />
+                    </FormField>
+                    <FormField label="Shop Registration Number">
+                      <input {...register('shopRegisterNo')} className="input-premium h-11 w-full px-4" />
+                    </FormField>
+                    <FormField label="Password">
+                      <input type="password" {...register('password')} required className="input-premium h-11 w-full px-4" />
+                    </FormField>
+                    <FormField label="Status">
+                      <select {...register('status')} className="input-premium h-11 w-full px-4">
+                        <option value="pending">Pending</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                      </select>
+                    </FormField>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-slate-200/80 bg-white/80 p-5 shadow-lg backdrop-blur dark:border-white/10 dark:bg-white/[0.04]">
+                  <h3 className="font-display text-base font-extrabold text-slate-950 dark:text-white mb-4">Documents</h3>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <FormField label="Aadhar Front">
+                      <label className="flex items-center justify-center gap-2 rounded-lg border border-dashed border-slate-300 bg-slate-50/60 p-4 cursor-pointer hover:border-primary-300 hover:bg-primary-50/50 dark:border-white/10 dark:bg-white/[0.04] dark:hover:bg-white/[0.08]">
+                        <FiUpload size={16} className="text-slate-400" />
+                        <span className="text-xs font-bold text-slate-600 dark:text-slate-300">Upload Aadhar Front</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          {...register('aadharFront')}
+                          className="sr-only"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) setValue('aadharFront', [file]);
+                          }}
+                        />
+                      </label>
+                      {watch('aadharFront')?.[0] && (
+                        <p className="mt-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                          {watch('aadharFront')[0].name}
+                        </p>
+                      )}
+                    </FormField>
+                    <FormField label="Aadhar Back">
+                      <label className="flex items-center justify-center gap-2 rounded-lg border border-dashed border-slate-300 bg-slate-50/60 p-4 cursor-pointer hover:border-primary-300 hover:bg-primary-50/50 dark:border-white/10 dark:bg-white/[0.04] dark:hover:bg-white/[0.08]">
+                        <FiUpload size={16} className="text-slate-400" />
+                        <span className="text-xs font-bold text-slate-600 dark:text-slate-300">Upload Aadhar Back</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          {...register('aadharBack')}
+                          className="sr-only"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) setValue('aadharBack', [file]);
+                          }}
+                        />
+                      </label>
+                      {watch('aadharBack')?.[0] && (
+                        <p className="mt-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                          {watch('aadharBack')[0].name}
+                        </p>
+                      )}
+                    </FormField>
+                    <FormField label="Shop Registration Document">
+                      <label className="flex items-center justify-center gap-2 rounded-lg border border-dashed border-slate-300 bg-slate-50/60 p-4 cursor-pointer hover:border-primary-300 hover:bg-primary-50/50 dark:border-white/10 dark:bg-white/[0.04] dark:hover:bg-white/[0.08]">
+                        <FiUpload size={16} className="text-slate-400" />
+                        <span className="text-xs font-bold text-slate-600 dark:text-slate-300">Upload Shop Reg Doc</span>
+                        <input
+                          type="file"
+                          accept="image/*,.pdf"
+                          {...register('shopRegisterDoc')}
+                          className="sr-only"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) setValue('shopRegisterDoc', [file]);
+                          }}
+                        />
+                      </label>
+                      {watch('shopRegisterDoc')?.[0] && (
+                        <p className="mt-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                          {watch('shopRegisterDoc')[0].name}
+                        </p>
+                      )}
+                    </FormField>
+                  </div>
+                </div>
               </div>
             </div>
 

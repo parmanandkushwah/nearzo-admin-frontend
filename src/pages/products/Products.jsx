@@ -11,12 +11,38 @@ const initialProduct = {
   description: '',
   productCategoryId: '',
   productSubCategoryId: '',
-  images: [{ alt: '', file: null }],
+  images: [{ alt: '', url: '', file: null }],
   variants: [{ name: '', mrp: '', image: null, imageFile: null }]
 };
 
 const API_BASE = '/products';
 const CATEGORY_API = '/product-categories';
+
+const getInputFile = (fileInput) => {
+  if (!fileInput) return null;
+  if (fileInput instanceof File) return fileInput;
+  if (fileInput instanceof FileList) return fileInput[0] || null;
+  if (Array.isArray(fileInput)) return fileInput[0] || null;
+  return null;
+};
+
+const getProductPreviewImage = (product) => {
+  const mainImage = product.images?.[0]?.url;
+  if (mainImage) return mainImage;
+  return product.variants?.find((v) => v.image)?.image || null;
+};
+
+const mapProductToForm = (product) => ({
+  ...product,
+  productCategoryId: product.productCategoryId?.toString() || '',
+  productSubCategoryId: product.productSubCategoryId?.toString() || '',
+  images: product.images?.length
+    ? product.images.map((img) => ({ url: img.url || '', alt: img.alt || '', file: null }))
+    : [{ alt: '', url: '', file: null }],
+  variants: product.variants?.length
+    ? product.variants.map((v) => ({ ...v, imageFile: null }))
+    : initialProduct.variants
+});
 
 const MasterProducts = () => {
   const [products, setProducts] = useState([]);
@@ -119,7 +145,7 @@ const MasterProducts = () => {
 
   const openModal = (product = null) => {
     setSelectedProduct(product);
-    reset(product || initialProduct);
+    reset(product ? mapProductToForm(product) : initialProduct);
     setShowModal(true);
   };
 
@@ -162,12 +188,15 @@ const MasterProducts = () => {
       (data.variants || [])
         .filter(v => v.name)
         .forEach((variant) => {
-          const imageFile = variant.imageFile?.[0];
+          const imageFile = getInputFile(variant.imageFile);
+          const existingVariantImage = variant.image?.startsWith('blob:')
+            ? null
+            : (variant.image || null);
           const variantPayload = {
             id: variant.id,
             name: variant.name,
             mrp: variant.mrp,
-            image: variant.image || null
+            image: imageFile ? null : (selectedProduct ? existingVariantImage : null)
           };
 
           if (imageFile) {
@@ -179,9 +208,10 @@ const MasterProducts = () => {
           variants.push(variantPayload);
         });
 
-      (data.images || []).forEach((image, idx) => {
-        if (image.file?.[0]) {
-          productData.append('images', image.file[0]);
+      (data.images || []).forEach((image) => {
+        const imageFile = getInputFile(image.file);
+        if (imageFile) {
+          productData.append('images', imageFile);
         }
       });
 
@@ -189,7 +219,15 @@ const MasterProducts = () => {
       productData.append('description', data.description || '');
       productData.append('productCategoryId', data.productCategoryId || '');
       productData.append('productSubCategoryId', data.productSubCategoryId || '');
-      productData.append('productImages', JSON.stringify(data.images?.map(img => ({ alt: img.alt || '' })) || []));
+      productData.append(
+        'productImages',
+        JSON.stringify(
+          (data.images || []).map((img) => ({
+            url: getInputFile(img.file) ? '' : (img.url || ''),
+            alt: img.alt || ''
+          }))
+        )
+      );
       productData.append('variants', JSON.stringify(variants));
 
       const requestConfig = {
@@ -289,7 +327,9 @@ return createPortal(
                   {product.name}
                 </h2>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-white/75 line-clamp-2">
-                  {product.description || 'No description added for this product.'}
+                  {product.description
+                    ? product.description.replace(/<[^>]*>/g, ' ')
+                    : 'No description added for this product.'}
                 </p>
               </div>
               <button type="button" onClick={onClose} className="icon-button shrink-0 border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white">
@@ -370,13 +410,18 @@ return createPortal(
                       <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Catalog information</p>
                     </div>
                   </div>
-                  <div className="space-y-4">
-                    <div>
-                      <p className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">Description</p>
-                      <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                        {product.description || 'No description added for this product.'}
-                      </p>
-                    </div>
+                    <div className="space-y-4">
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">Description</p>
+                        <div
+                          className="prose prose-sm mt-2 max-w-none text-slate-600 dark:text-slate-300"
+                          dangerouslySetInnerHTML={{
+                            __html: product.description
+                              ? product.description.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+                              : 'No description added for this product.'
+                          }}
+                        />
+                      </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="rounded-lg bg-slate-50 p-3 dark:bg-white/[0.04]">
                         <p className="text-xs font-bold text-slate-500 dark:text-slate-400">Product ID</p>
@@ -568,13 +613,15 @@ return createPortal(
               </tr>
             </thead>
             <tbody>
-              {paginatedProducts.map((product) => (
-                <tr key={product.id} className="border-b border-gray-100/50 dark:border-gray-800/50 hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-all">
+              {paginatedProducts.map((product) => {
+                const previewImage = getProductPreviewImage(product);
+                return (
+                  <tr key={product.id} className="border-b border-gray-100/50 dark:border-gray-800/50 hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-all">
                   <td className="py-4 px-3">
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 rounded-lg bg-slate-100 dark:bg-slate-800 overflow-hidden flex-shrink-0">
-                        {product.images?.[0]?.url ? (
-                          <img src={product.images[0].url} alt={product.name} className="h-full w-full object-cover" crossOrigin="anonymous" />
+                        {previewImage ? (
+                          <img src={previewImage} alt={product.name} className="h-full w-full object-cover" crossOrigin="anonymous" />
                         ) : (
                           <div className="flex h-full w-full items-center justify-center text-slate-400">
                             <FiImage size={16} />
@@ -583,7 +630,11 @@ return createPortal(
                       </div>
                       <div>
                         <p className="font-medium text-slate-950 dark:text-white">{product.name}</p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1">{product.description}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1">
+                        {product.description
+                          ? product.description.replace(/<[^>]*>/g, ' ')
+                          : 'No description'}
+                      </p>
                       </div>
                     </div>
                   </td>
@@ -617,8 +668,9 @@ return createPortal(
                       </button>
                     </div>
                   </td>
-                </tr>
-              ))}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -769,14 +821,17 @@ return createPortal(
                   </div>
                   <div className="space-y-3">
                     {imageFields.map((field, index) => {
-                      const filePreview = watch(`images.${index}.file`)?.[0] ? URL.createObjectURL(watch(`images.${index}.file`)[0]) : null;
-                      const hasFile = !!watch(`images.${index}.file`)?.[0];
+                      const imageFile = getInputFile(watch(`images.${index}.file`));
+                      const filePreview = imageFile ? URL.createObjectURL(imageFile) : null;
+                      const existingUrl = watch(`images.${index}.url`);
+                      const previewSrc = filePreview || existingUrl || null;
+                      const hasFile = !!imageFile;
                       return (
                         <div key={field.id} className="flex gap-2">
                           <div className="flex-1">
-                            {filePreview ? (
+                            {previewSrc ? (
                               <img
-                                src={filePreview}
+                                src={previewSrc}
                                 alt={`Preview ${index + 1}`}
                                 className="mb-2 h-20 w-20 rounded-lg object-cover"
                               />
@@ -884,15 +939,15 @@ return createPortal(
                               <input
                                 type="file"
                                 accept="image/*"
-                                {...register(`variants.${index}.imageFile`)}
                                 className="sr-only"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
-                                    const previewUrl = URL.createObjectURL(file);
-                                    setValue(`variants.${index}.image`, previewUrl);
+                                {...register(`variants.${index}.imageFile`, {
+                                  onChange: (e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      setValue(`variants.${index}.image`, URL.createObjectURL(file));
+                                    }
                                   }
-                                }}
+                                })}
                               />
                             </label>
                           </div>
@@ -905,7 +960,7 @@ return createPortal(
                                 crossOrigin="anonymous"
                               />
                               <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                                {watch(`variants.${index}.imageFile`)?.[0] ? 'Preview - image will be uploaded on save.' : 'Current image. Choose new file to replace.'}
+                                {getInputFile(watch(`variants.${index}.imageFile`)) ? 'Preview - image will be uploaded on save.' : 'Current image. Choose new file to replace.'}
                               </p>
                             </div>
                           )}
