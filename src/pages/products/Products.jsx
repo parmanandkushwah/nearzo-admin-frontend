@@ -1,6 +1,8 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm, useFieldArray, Controller } from 'react-hook-form';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 import api from '../../services/api';
 import { FiPlus, FiEdit, FiTrash2, FiShoppingBag, FiSearch, FiTag, FiPackage, FiDollarSign, FiImage, FiUpload, FiTrash, FiChevronLeft, FiChevronRight, FiFolder, FiX, FiEye, FiLoader } from 'react-icons/fi';
 
@@ -698,12 +700,32 @@ return createPortal(
 
                     <label className="block">
                       <span className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200">Description</span>
-                      <textarea
-                        {...register('description')}
-                        className="input-premium w-full px-4 py-3"
-                        placeholder="Brief description of the product"
-                        rows={3}
-                      />
+                      <div className="rounded-lg border border-slate-200/80 bg-white/80">
+                        <Controller
+                          name="description"
+                          control={control}
+                          defaultValue={selectedProduct?.description || ''}
+                          render={({ field: { onChange, value } }) => (
+                            <ReactQuill
+                              value={value || ''}
+                              onChange={onChange}
+                              placeholder="Brief description of the product"
+                              modules={{
+                                toolbar: [
+                                  [{ header: [1, 2, 3, false] }],
+                                  ['bold', 'italic', 'underline', 'strike'],
+                                  [{ list: 'ordered' }, { list: 'bullet' }],
+                                  [{ color: [] }, { background: [] }],
+                                  ['link', 'image'],
+                                  ['clean']
+                                ]
+                              }}
+                              theme="snow"
+                              style={{ minHeight: '150px' }}
+                            />
+                          )}
+                        />
+                      </div>
                     </label>
 
                     <div className="grid grid-cols-2 gap-4">
