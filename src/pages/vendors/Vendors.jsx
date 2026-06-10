@@ -18,6 +18,7 @@ import {
   FiShoppingBag,
   FiTrash2,
   FiTruck,
+  FiUpload,
   FiUsers,
   FiX
 } from 'react-icons/fi';
@@ -27,6 +28,8 @@ const initialForm = {
   owner: '',
   phone: '',
   area: '',
+  latitude: '',
+  longitude: '',
   category: 'Grocery',
   status: 'pending',
   email: '',
@@ -176,6 +179,8 @@ const Vendors = () => {
         if (data.password) formData.append('password', data.password);
         if (data.shopRegisterNo) formData.append('shopRegisterNo', data.shopRegisterNo);
         if (data.gstNo) formData.append('gstNo', data.gstNo);
+        if (data.latitude !== '' && data.latitude != null) formData.append('latitude', data.latitude);
+        if (data.longitude !== '' && data.longitude != null) formData.append('longitude', data.longitude);
         if (data.shopImage?.[0]) formData.append('shopImage', data.shopImage[0]);
         if (data.aadharFront?.[0]) formData.append('aadharFront', data.aadharFront[0]);
         if (data.aadharBack?.[0]) formData.append('aadharBack', data.aadharBack[0]);
@@ -215,7 +220,9 @@ const Vendors = () => {
           email: data.email,
           password: data.password,
           shopRegisterNo: data.shopRegisterNo,
-          gstNo: data.gstNo
+          gstNo: data.gstNo,
+          latitude: data.latitude !== '' ? data.latitude : null,
+          longitude: data.longitude !== '' ? data.longitude : null
         };
 
         if (editingVendor) {
@@ -657,6 +664,28 @@ const Vendors = () => {
                     </FormField>
                     <FormField label="Area">
                       <input {...register('area')} className="input-premium h-11 w-full px-4" />
+                    </FormField>
+                    <FormField label="Latitude">
+                      <input
+                        type="number"
+                        step="any"
+                        min="-90"
+                        max="90"
+                        {...register('latitude')}
+                        placeholder="e.g., 28.6139"
+                        className="input-premium h-11 w-full px-4"
+                      />
+                    </FormField>
+                    <FormField label="Longitude">
+                      <input
+                        type="number"
+                        step="any"
+                        min="-180"
+                        max="180"
+                        {...register('longitude')}
+                        placeholder="e.g., 77.2090"
+                        className="input-premium h-11 w-full px-4"
+                      />
                     </FormField>
                     <FormField label="Category">
                       <select {...register('category')} className="input-premium h-11 w-full px-4">
