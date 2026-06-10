@@ -825,9 +825,19 @@ return createPortal(
 
 <div className="rounded-xl border border-slate-200/80 bg-white/80 p-5 shadow-lg backdrop-blur dark:border-white/10 dark:bg-white/[0.04]">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-display text-base font-extrabold text-slate-950 dark:text-white">Variants</h3>
+                  <h3 className="font-display text-base font-extrabold text-slate-950 dark:text-white">Variants</h3>
+                  <div className="flex items-center gap-3">
                     <span className="text-xs font-semibold text-primary-700 dark:text-primary-300">At least 1 variant required (default)</span>
+                    <button
+                      type="button"
+                      onClick={() => appendVariant({ name: '', mrp: '', image: null, imageFile: null })}
+                      className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+                    >
+                      <FiPlus size={16} />
+                      Add Variant
+                    </button>
                   </div>
+                </div>
                   <div className="space-y-4">
                     {variantFields.map((field, index) => (
                       <div key={field.id} className="rounded-lg border border-slate-200/50 bg-white/60 p-4 dark:border-white/10 dark:bg-white/[0.03]">
