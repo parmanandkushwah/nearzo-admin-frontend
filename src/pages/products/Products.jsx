@@ -7,11 +7,10 @@ import { FiPlus, FiEdit, FiTrash2, FiShoppingBag, FiSearch, FiTag, FiPackage, Fi
 const initialProduct = {
   name: '',
   description: '',
-  mrp: '',
   productCategoryId: '',
   productSubCategoryId: '',
-  images: [{ url: '', alt: '' }],
-  variants: [{ name: '', mrp: '', image: null }]
+  images: [{ alt: '', file: null }],
+  variants: [{ name: '', mrp: '', image: null, imageFile: null }]
 };
 
 const API_BASE = '/products';
@@ -178,12 +177,17 @@ const MasterProducts = () => {
           variants.push(variantPayload);
         });
 
+      (data.images || []).forEach((image, idx) => {
+        if (image.file?.[0]) {
+          productData.append('images', image.file[0]);
+        }
+      });
+
       productData.append('name', data.name || '');
       productData.append('description', data.description || '');
-      productData.append('mrp', data.mrp || '');
       productData.append('productCategoryId', data.productCategoryId || '');
       productData.append('productSubCategoryId', data.productSubCategoryId || '');
-      productData.append('images', JSON.stringify(data.images?.filter(img => img.url) || []));
+      productData.append('productImages', JSON.stringify(data.images?.map(img => ({ alt: img.alt || '' })) || []));
       productData.append('variants', JSON.stringify(variants));
 
       const requestConfig = {
@@ -239,8 +243,8 @@ const MasterProducts = () => {
     }
   };
 
-  const Modal = ({ children, onClose }) => createPortal(
-    <div className="fixed inset-0 z-50 flex min-h-screen items-center justify-center p-4" onClick={onClose}>
+  const Modal = ({ children }) => createPortal(
+    <div className="fixed inset-0 z-50 flex min-h-screen items-center justify-center p-4">
       <div className="relative z-10 h-[90vh] w-full max-w-3xl overflow-hidden rounded-2xl border border-white/20 bg-white/[0.94] shadow-2xl shadow-slate-950/30 backdrop-blur-xl dark:border-white/10 dark:bg-[#1F2937]/[0.96]" onClick={(e) => e.stopPropagation()}>
         {children}
       </div>
@@ -264,10 +268,10 @@ const MasterProducts = () => {
     const subCategoryName = product.ProductSubCategory?.name || getSubCategoryName(product.productSubCategoryId);
     const displayPrice = product.mrp || (product.price ? `Rs ${product.price}` : '-');
 
-    return createPortal(
-      <div className="fixed inset-0 z-50 flex min-h-screen items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm" onClick={onClose}>
-        <div className="relative z-10 flex h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-white/30 bg-white/[0.86] shadow-2xl shadow-slate-950/35 backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/[0.86]" onClick={(e) => e.stopPropagation()}>
-          <div className="relative overflow-hidden border-b border-white/40 bg-gradient-to-br from-primary-700 via-primary-600 to-slate-900 px-6 py-5 text-white dark:border-white/10">
+return createPortal(
+       <div className="fixed inset-0 z-50 flex min-h-screen items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm">
+         <div className="relative z-10 flex h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-white/30 bg-white/[0.86] shadow-2xl shadow-slate-950/35 backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/[0.86]" onClick={(e) => e.stopPropagation()}>
+           <div className="relative overflow-hidden border-b border-white/40 bg-gradient-to-br from-primary-700 via-primary-600 to-slate-900 px-6 py-5 text-white dark:border-white/10">
             <div className="absolute inset-y-0 right-0 w-1/2 bg-[radial-gradient(circle_at_70%_22%,rgba(50,211,154,0.35),transparent_18rem)]" />
             <div className="relative flex items-start justify-between gap-4">
               <div className="min-w-0">
@@ -655,7 +659,7 @@ const MasterProducts = () => {
       </section>
 
       {showModal && (
-        <Modal onClose={closeModal}>
+        <Modal>
           <form onSubmit={handleSubmit(onSubmit)} className="flex h-full flex-col">
             <div className="border-b border-white/20 bg-white px-6 py-5 dark:border-white/10 dark:bg-slate-950">
               <div className="flex items-start justify-between gap-4">
@@ -702,17 +706,6 @@ const MasterProducts = () => {
                       />
                     </label>
 
-                    <label className="block">
-                      <span className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200">MRP (Max Retail Price)</span>
-                      <input
-                        type="text"
-                        required
-                        {...register('mrp')}
-                        className="input-premium h-11 w-full px-4"
-                        placeholder="e.g., ₹120/kg"
-                      />
-                    </label>
-
                     <div className="grid grid-cols-2 gap-4">
                       <label className="block">
                         <span className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200">Category</span>
@@ -748,32 +741,53 @@ const MasterProducts = () => {
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-slate-200/80 bg-white/80 p-5 shadow-lg backdrop-blur dark:border-white/10 dark:bg-white/[0.04]">
+<div className="rounded-xl border border-slate-200/80 bg-white/80 p-5 shadow-lg backdrop-blur dark:border-white/10 dark:bg-white/[0.04]">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-display text-base font-extrabold text-slate-950 dark:text-white">Product Images</h3>
-                    <button
-                      type="button"
-                      onClick={() => appendImage({ url: '', alt: '' })}
-                      className="inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-accent-400 to-accent-500 px-3 py-2 text-xs font-bold text-white shadow-[0_14px_26px_-16px_rgba(32,184,131,0.75)] hover:from-accent-500 hover:to-accent-600"
-                    >
-                      <FiPlus size={12} />
-                      Add Image
-                    </button>
                   </div>
                   <div className="space-y-3">
-                    {imageFields.map((field, index) => (
-                      <div key={field.id} className="flex gap-2">
-                        <input
-                          {...register(`images.${index}.url`)}
-                          className="input-premium h-10 flex-1 px-3"
-                          placeholder="Image URL"
-                        />
-                        <input
-                          {...register(`images.${index}.alt`)}
-                          className="input-premium h-10 flex-1 px-3"
-                          placeholder="Alt text"
-                        />
-                        {imageFields.length > 1 && (
+                    {imageFields.map((field, index) => {
+                      const filePreview = watch(`images.${index}.file`)?.[0] ? URL.createObjectURL(watch(`images.${index}.file`)[0]) : null;
+                      const hasFile = !!watch(`images.${index}.file`)?.[0];
+                      return (
+                        <div key={field.id} className="flex gap-2">
+                          <div className="flex-1">
+                            {filePreview ? (
+                              <img
+                                src={filePreview}
+                                alt={`Preview ${index + 1}`}
+                                className="mb-2 h-20 w-20 rounded-lg object-cover"
+                              />
+                            ) : (
+                              <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg bg-white px-3 py-2 text-xs font-bold text-primary-700 ring-1 ring-primary-100 hover:bg-primary-50 dark:bg-white/[0.08] dark:text-primary-300 dark:ring-white/10 dark:hover:bg-white/[0.12]">
+                                <FiUpload size={14} />
+                                Upload Image
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  {...register(`images.${index}.file`)}
+                                  className="sr-only"
+                                />
+                              </label>
+                            )}
+                            {hasFile && (
+                              <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg bg-white/80 px-3 py-2 text-xs font-bold text-primary-700 ring-1 ring-primary-100 hover:bg-primary-50 dark:bg-white/[0.08] dark:text-primary-300 dark:ring-white/10 dark:hover:bg-white/[0.12]">
+                                <FiUpload size={14} />
+                                Change Image
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  {...register(`images.${index}.file`)}
+                                  className="sr-only"
+                                />
+                              </label>
+                            )}
+                          </div>
+                          {/* <input
+                            {...register(`images.${index}.alt`)}
+                            className="input-premium h-10 flex-1 px-3"
+                            placeholder="Alt text"
+                          /> */}
                           <button
                             type="button"
                             onClick={() => removeImage(index)}
@@ -781,29 +795,24 @@ const MasterProducts = () => {
                           >
                             <FiTrash size={14} />
                           </button>
-                        )}
-                      </div>
-                    ))}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-slate-200/80 bg-white/80 p-5 shadow-lg backdrop-blur dark:border-white/10 dark:bg-white/[0.04]">
+<div className="rounded-xl border border-slate-200/80 bg-white/80 p-5 shadow-lg backdrop-blur dark:border-white/10 dark:bg-white/[0.04]">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-display text-base font-extrabold text-slate-950 dark:text-white">Variants</h3>
-                    <button
-                      type="button"
-                      onClick={() => appendVariant({ name: '', mrp: '', image: null })}
-                      className="inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-primary-500 to-primary-700 px-3 py-2 text-xs font-bold text-white shadow-[0_14px_26px_-16px_rgba(108,76,241,0.75)] hover:from-primary-600 hover:to-primary-800"
-                    >
-                      <FiPlus size={12} />
-                      Add Variant
-                    </button>
+                    <span className="text-xs font-semibold text-primary-700 dark:text-primary-300">At least 1 variant required (default)</span>
                   </div>
                   <div className="space-y-4">
                     {variantFields.map((field, index) => (
                       <div key={field.id} className="rounded-lg border border-slate-200/50 bg-white/60 p-4 dark:border-white/10 dark:bg-white/[0.03]">
                         <div className="mb-3 flex items-center justify-between">
-                          <span className="text-sm font-bold text-slate-700 dark:text-slate-200">Variant {index + 1}</span>
+                          <span className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                            {index === 0 ? 'Default Variant' : `Variant ${index + 1}`}
+                          </span>
                           {variantFields.length > 1 && (
                             <button
                               type="button"
@@ -818,12 +827,12 @@ const MasterProducts = () => {
                           <input
                             {...register(`variants.${index}.name`)}
                             className="input-premium h-10 w-full px-3"
-                            placeholder="Variant name (e.g., 1kg, 500g)"
+                            placeholder={index === 0 ? "Default variant (e.g., 1kg)" : "Variant name (e.g., 500g)"}
                           />
                           <input
                             {...register(`variants.${index}.mrp`)}
                             className="input-premium h-10 w-full px-3"
-                            placeholder="MRP for this variant (e.g., ₹120)"
+                            placeholder={index === 0 ? "MRP for default variant (required)" : "MRP for this variant (e.g., ₹120)"}
                           />
                         </div>
                         <div className="mt-3 rounded-lg border border-dashed border-primary-200 bg-primary-50/50 p-3 dark:border-white/10 dark:bg-white/[0.04]">
@@ -845,6 +854,13 @@ const MasterProducts = () => {
                                 accept="image/*"
                                 {...register(`variants.${index}.imageFile`)}
                                 className="sr-only"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) {
+                                    const previewUrl = URL.createObjectURL(file);
+                                    setValue(`variants.${index}.image`, previewUrl);
+                                  }
+                                }}
                               />
                             </label>
                           </div>
@@ -856,7 +872,9 @@ const MasterProducts = () => {
                                 className="h-12 w-12 rounded-lg object-cover"
                                 crossOrigin="anonymous"
                               />
-                              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Current image stays unless you choose a new one.</p>
+                              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                                {watch(`variants.${index}.imageFile`)?.[0] ? 'Preview - image will be uploaded on save.' : 'Current image. Choose new file to replace.'}
+                              </p>
                             </div>
                           )}
                         </div>
