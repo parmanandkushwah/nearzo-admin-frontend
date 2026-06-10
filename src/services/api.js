@@ -1,22 +1,41 @@
 import axios from 'axios';
 
-const normalizeApiBase = (url = '') => url.replace(/\/api\/?$/, '').replace(/\/$/, '');
+const stripTrailingSlashes = (url = '') => url.replace(/\/+$/, '');
 
-const API_BASE = import.meta.env.VITE_API_URL?.replace(/\/+$/, '').replace(/\/api\/api$/, '/api') || '';
-const baseURL = API_BASE || '/api';
+const resolveApiBaseUrl = () => {
+  const configured = stripTrailingSlashes(import.meta.env.VITE_API_URL || '');
+  if (configured) return configured;
+
+  // nearzo.in nginx proxies the Node app under /api/api/*
+  if (import.meta.env.PROD) {
+    return '/api/api';
+  }
+
+  return '/api';
+};
+
+const resolveBackendOrigin = () => {
+  const configured = stripTrailingSlashes(import.meta.env.VITE_API_URL || '');
+
+  if (/^https?:\/\//i.test(configured)) {
+    return configured.replace(/(\/api)+\/?$/i, '');
+  }
+
+  if (typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+
+  return 'http://localhost:5000';
+};
+
+const baseURL = resolveApiBaseUrl();
 
 export const getMediaUrl = (path) => {
   if (!path) return '';
   if (/^(https?:|blob:)/i.test(path)) return path;
 
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-  const backendUrl = normalizeApiBase(import.meta.env.VITE_API_URL || '');
-
-  if (backendUrl) {
-    return `${backendUrl}${normalizedPath}`;
-  }
-
-  return normalizedPath;
+  return `${resolveBackendOrigin()}${normalizedPath}`;
 };
 
 const api = axios.create({
