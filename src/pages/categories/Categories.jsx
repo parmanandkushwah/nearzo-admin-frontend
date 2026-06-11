@@ -99,7 +99,7 @@ const Categories = () => {
        };
 
       let response;
-      if (selectedCategory) {
+      if (selectedCategory?.id) {
         response = await api.put(`/categories/${selectedCategory.id}`, payload, {
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -382,7 +382,7 @@ const Categories = () => {
                     Category
                   </span>
                   <h2 className="mt-3 font-display text-2xl font-extrabold text-slate-950 dark:text-white">
-                    {selectedCategory ? 'Edit Category' : 'Add Category'}
+                     {selectedCategory?.id ? 'Edit Category' : 'Add Category'}
                   </h2>
                   <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
                     {selectedCategory?.parentId ? 'Add a new subcategory under a parent category.' : 'Create a new top-level category for your products.'}
