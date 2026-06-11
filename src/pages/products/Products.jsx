@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+﻿import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import ReactQuill from 'react-quill';
@@ -80,45 +80,8 @@ const mapProductToForm = (product) => ({
 const MasterProducts = () => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchProducts();
-    fetchCategories();
-  }, []);
-
-  const fetchProducts = async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem('token');
-      const response = await api.get(API_BASE, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (response.data.success) {
-        setProducts(response.data.products || []);
-      }
-    } catch (error) {
-      console.error('Failed to fetch products:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchCategories = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      
-      const response = await api.get(CATEGORY_API, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      if (response.data.success) {
-        setCategories(response.data.categories || []);
-      }
-    } catch (error) {
-      console.error('Failed to fetch categories:', error);
-    }
-  };
 
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -147,34 +110,68 @@ const MasterProducts = () => {
 
   const watchedCategoryId = watch('productCategoryId');
 
-  const selectedCategory = useMemo(() => 
+  const selectedCategory = useMemo(() =>
     categories.find(c => c.id === parseInt(watchedCategoryId)) || null
   , [watchedCategoryId, categories]);
 
   const getCategoryName = (id) => categories.find(c => c.id === id)?.name || '-';
   const getSubCategoryName = (id) => categories.flatMap(c => c.subCategories).find(sc => sc.id === id)?.name || '-';
 
-  const filteredProducts = useMemo(() => {
-    return products.filter(p => {
-      const matchesSearch = !search || p.name.toLowerCase().includes(search.toLowerCase());
-      const matchesCategory = !selectedCategoryId || p.productCategoryId === parseInt(selectedCategoryId);
-      const matchesSubCategory = !selectedSubCategoryId || p.productSubCategoryId === parseInt(selectedSubCategoryId);
-      return matchesSearch && matchesCategory && matchesSubCategory;
-    });
-  }, [products, search, selectedCategoryId, selectedSubCategoryId]);
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      const params = { page: currentPage, limit: itemsPerPage };
+      if (search) params.search = search;
+      if (selectedCategoryId) params.productCategoryId = selectedCategoryId;
+      if (selectedSubCategoryId) params.productSubCategoryId = selectedSubCategoryId;
+
+      const response = await api.get(API_BASE, {
+        headers: { Authorization: `Bearer ${token}` },
+        params
+      });
+      if (response.data.success) {
+        setProducts(response.data.products || []);
+        setTotalCount(response.data.total || 0);
+      }
+    } catch (error) {
+      console.error('Failed to fetch products:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await api.get(CATEGORY_API, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.data.success) {
+        setCategories(response.data.categories || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch categories:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [currentPage, search, selectedCategoryId, selectedSubCategoryId]);
 
   const stats = useMemo(() => {
-    const total = products.length;
+    const total = totalCount;
     const withVariants = products.filter(p => p.variants?.length > 1).length;
     const totalVariants = products.reduce((sum, p) => sum + (p.variants?.length || 1), 0);
     return { total, withVariants, totalVariants };
-  }, [products]);
+  }, [products, totalCount]);
 
-  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
-  const paginatedProducts = filteredProducts.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  const totalPages = Math.ceil(totalCount / itemsPerPage);
+  const paginatedProducts = products;
 
   const openModal = (product = null) => {
     setSelectedProduct(product);
@@ -596,7 +593,7 @@ return createPortal(
             <input
               type="search"
               value={search}
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={(event) => { setSearch(event.target.value); setCurrentPage(1); }}
               placeholder="Search products..."
               className="input-premium h-11 w-full pl-11 pr-4"
             />
@@ -607,6 +604,7 @@ return createPortal(
               onChange={(e) => {
                 setSelectedCategoryId(e.target.value);
                 setSelectedSubCategoryId('');
+                setCurrentPage(1);
               }}
               className="input-premium h-10 w-40 px-3 text-sm"
             >
@@ -617,7 +615,7 @@ return createPortal(
             </select>
             <select
               value={selectedSubCategoryId}
-              onChange={(e) => setSelectedSubCategoryId(e.target.value)}
+              onChange={(e) => { setSelectedSubCategoryId(e.target.value); setCurrentPage(1); }}
               className="input-premium h-10 w-40 px-3 text-sm"
               disabled={!selectedCategoryId}
             >
@@ -626,7 +624,7 @@ return createPortal(
                 <option key={sc.id} value={sc.id}>{sc.name}</option>
               ))}
             </select>
-            <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">Showing: {filteredProducts.length}</span>
+            <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">Showing: {totalCount}</span>
           </div>
         </div>
 
@@ -705,7 +703,7 @@ return createPortal(
           </table>
         </div>
 
-        {filteredProducts.length === 0 && (
+        {products.length === 0 && !loading && (
           <div className="p-10 text-center">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-300">
               <FiShoppingBag size={22} />
