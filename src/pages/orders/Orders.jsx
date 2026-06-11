@@ -177,9 +177,9 @@ const [orders, setOrders] = useState([]);
     const totalBill = order.total != null ? parseFloat(order.total) : subtotal - discount + deliveryCharge + gst;
 
     return createPortal(
-      <div className="fixed inset-0 z-50 flex min-h-screen items-center justify-center p-4" onClick={onClose}>
+      <div className="fixed inset-0 z-50 flex min-h-screen items-center justify-center p-4">
         <div className="absolute inset-0 bg-black/20 backdrop-blur-[3px]" />
-        <div className="relative z-10 h-[90vh] w-full max-w-5xl overflow-hidden rounded-2xl border-2 border-white/30 bg-gradient-to-br from-white/85 to-slate-50/85 shadow-2xl shadow-slate-950/50 dark:border-white/20 dark:from-slate-800/85 dark:to-slate-900/85" onClick={(e) => e.stopPropagation()}>
+        <div className="relative z-10 h-[90vh] w-full max-w-5xl overflow-hidden rounded-2xl border-2 border-white/30 bg-gradient-to-br from-white/85 to-slate-50/85 shadow-2xl shadow-slate-950/50 dark:border-white/20 dark:from-slate-800/85 dark:to-slate-900/85">
           <div className="flex h-full flex-col">
             <div className="border-b border-white/30 bg-gradient-to-r from-cyan-50/70 to-blue-50/70 px-6 py-5 dark:border-white/20 dark:from-cyan-900/30 dark:to-blue-900/30">
               <div className="flex items-start justify-between gap-4">

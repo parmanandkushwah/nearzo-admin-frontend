@@ -368,8 +368,8 @@ const Vendors = () => {
   );
 
   const Modal = ({ children, onClose }) => createPortal(
-    <div className="fixed inset-0 z-50 flex min-h-screen items-center justify-center p-4" onClick={onClose}>
-      <div className="relative z-10 h-[90vh] w-full max-w-3xl overflow-hidden rounded-2xl border border-white/20 bg-white/[0.94] shadow-2xl shadow-slate-950/30 backdrop-blur-xl dark:border-white/10 dark:bg-[#1F2937]/[0.96]" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex min-h-screen items-center justify-center p-4">
+      <div className="relative z-10 h-[90vh] w-full max-w-3xl overflow-hidden rounded-2xl border border-white/20 bg-white/[0.94] shadow-2xl shadow-slate-950/30 backdrop-blur-xl dark:border-white/10 dark:bg-[#1F2937]/[0.96]">
         {children}
       </div>
     </div>,

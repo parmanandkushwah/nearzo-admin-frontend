@@ -18,6 +18,8 @@ const Categories = () => {
   const [showModal, setShowModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [expandedCategories, setExpandedCategories] = useState(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 8;
   const fetchCategories = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -55,6 +57,17 @@ const Categories = () => {
     );
   }, [categories, search]);
 
+  const filteredParentCategories = useMemo(() => {
+    return parentCategories.filter(p => !search || filteredCategories.some(fc => fc.id === p.id || fc.parentId === p.id));
+  }, [parentCategories, search, filteredCategories]);
+
+  const totalPages = Math.ceil(filteredParentCategories.length / PAGE_SIZE);
+
+  const paginatedParentCategories = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return filteredParentCategories.slice(start, start + PAGE_SIZE);
+  }, [filteredParentCategories, currentPage]);
+
   const stats = useMemo(() => {
     const total = parentCategories.length;
     const active = parentCategories.filter(c => c.isActive).length;
@@ -63,6 +76,11 @@ const Categories = () => {
     const subCategories = categories.filter(c => c.parentId).length;
     return { total, active, featured, withSubCategories, subCategories };
   }, [categories, parentCategories]);
+
+  const handleSearchChange = (e) => {
+    setSearch(e.target.value);
+    setCurrentPage(1);
+  };
 
   const openModal = (category = null) => {
     setSelectedCategory(category);
@@ -162,8 +180,8 @@ const Categories = () => {
   };
 
   const Modal = ({ children, onClose }) => createPortal(
-    <div className="fixed inset-0 z-50 flex min-h-screen items-center justify-center p-4" onClick={onClose}>
-      <div className="relative z-10 h-[90vh] w-full max-w-2xl overflow-hidden rounded-2xl border border-white/20 bg-white/[0.94] shadow-2xl shadow-slate-950/30 backdrop-blur-xl dark:border-white/10 dark:bg-[#1F2937]/[0.96]" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex min-h-screen items-center justify-center p-4">
+      <div className="relative z-10 h-[90vh] w-full max-w-2xl overflow-hidden rounded-2xl border border-white/20 bg-white/[0.94] shadow-2xl shadow-slate-950/30 backdrop-blur-xl dark:border-white/10 dark:bg-[#1F2937]/[0.96]">
         {children}
       </div>
     </div>,
@@ -242,28 +260,23 @@ const Categories = () => {
             <input
               type="search"
               value={search}
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={handleSearchChange}
               placeholder="Search categories..."
               className="input-premium h-11 w-full pl-11 pr-4"
             />
           </div>
           <div className="flex flex-wrap gap-2">
-            <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">Showing: {filteredCategories.length}</span>
+            <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">Showing: {filteredParentCategories.length}</span>
           </div>
         </div>
 
         <div className="p-5">
           <div className="space-y-2">
-            {parentCategories
-              .filter(p => !search || filteredCategories.some(fc => fc.id === p.id || fc.parentId === p.id))
+            {paginatedParentCategories
               .map((category) => {
                 const children = getChildCategories(category.id);
                 const isExpanded = expandedCategories.has(category.id);
                 const hasChildren = children.length > 0;
-                
-                if (search && !filteredCategories.some(fc => fc.id === category.id)) {
-                  return null;
-                }
 
                 return (
                   <div key={category.id} className="space-y-1">
@@ -359,6 +372,43 @@ const Categories = () => {
                 );
               })}
           </div>
+
+          {totalPages > 1 && (
+            <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4 dark:border-white/5">
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                Page {currentPage} of {totalPages}
+              </p>
+              <div className="flex gap-1">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="icon-button disabled:opacity-40"
+                >
+                  <FiChevronRight size={16} className="rotate-180" />
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`flex h-8 w-8 items-center justify-center rounded-lg text-sm font-semibold transition-colors ${
+                      page === currentPage
+                        ? 'bg-teal-600 text-white'
+                        : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/10'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="icon-button disabled:opacity-40"
+                >
+                  <FiChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
 
           {parentCategories.length === 0 && (
             <div className="p-10 text-center">
