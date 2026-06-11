@@ -555,7 +555,7 @@ return createPortal(
           </div>
           <p className="mt-5 text-sm font-semibold text-slate-500 dark:text-slate-400">Total Products</p>
           <p className="mt-2 font-display text-3xl font-extrabold text-slate-950 dark:text-white">{stats.total}</p>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">In master catalog</p>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">In master catalogue</p>
         </div>
 
         <div className="panel p-5">
