@@ -83,7 +83,7 @@ const Dashboard = () => {
               kpis: [
                 {
                   title: 'Gross Merchandise Value',
-                  value: `Rs ${(stats.stats.monthlyRevenue / 100000).toFixed(1)}L`,
+                  value: `Rs ${(stats.stats.monthlyRevenue || 0).toFixed(2)}`,
                   change: stats.kpiChanges?.revenueChange || '+12.8%',
                   caption: 'vs last month',
                   icon: FiDollarSign,
