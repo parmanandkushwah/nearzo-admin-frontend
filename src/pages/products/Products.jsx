@@ -780,35 +780,39 @@ return createPortal(
                       />
                     </label>
 
-                    <label className="block">
-                      <span className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200">Description</span>
-                      <div className="rounded-lg border border-slate-200/80 bg-white/80">
-                        <Controller
-                          name="description"
-                          control={control}
-                          defaultValue={selectedProduct?.description || ''}
-                          render={({ field: { onChange, value } }) => (
-                            <ReactQuill
-                              value={value || ''}
-                              onChange={onChange}
-                              placeholder="Brief description of the product"
-                              modules={{
-                                toolbar: [
-                                  [{ header: [1, 2, 3, false] }],
-                                  ['bold', 'italic', 'underline', 'strike'],
-                                  [{ list: 'ordered' }, { list: 'bullet' }],
-                                  [{ color: [] }, { background: [] }],
-                                  ['link', 'image'],
-                                  ['clean']
-                                ]
-                              }}
-                              theme="snow"
-                              style={{ minHeight: '150px' }}
-                            />
-                          )}
-                        />
-                      </div>
-                    </label>
+                <label className="block">
+  <span className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200">
+    Description
+  </span>
+
+  <div className="rounded-lg border border-slate-200/80 bg-white/80">
+    <Controller
+      name="description"
+      control={control}
+      defaultValue={selectedProduct?.description || ''}
+      render={({ field: { onChange, value } }) => (
+        <div className="[&_.ql-editor]:min-h-[200px] [&_.ql-container]:min-h-[200px]">
+          <ReactQuill
+            value={value || ''}
+            onChange={onChange}
+            placeholder="Brief description of the product"
+            modules={{
+              toolbar: [
+                [{ header: [1, 2, 3, false] }],
+                ['bold', 'italic', 'underline', 'strike'],
+                [{ list: 'ordered' }, { list: 'bullet' }],
+                [{ color: [] }, { background: [] }],
+                ['link', 'image'],
+                ['clean'],
+              ],
+            }}
+            theme="snow"
+          />
+        </div>
+      )}
+    />
+  </div>
+</label>
 
                     <div className="grid grid-cols-2 gap-4">
                       <label className="block">
