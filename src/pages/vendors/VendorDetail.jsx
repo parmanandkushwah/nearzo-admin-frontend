@@ -218,7 +218,7 @@ const VendorDetail = () => {
               <FiX size={20} />
             </button>
           </div>
-          <div className="p-6 bg-slate-50 dark:bg-slate-900">
+          <div className="p-6 bg-slate-50 dark:bg-slate-900 max-h-[70vh] overflow-y-auto">
             <img src={getImageUrl(doc.imageUrl)} alt={doc.label} className="w-full h-auto rounded-lg" />
           </div>
         </div>
