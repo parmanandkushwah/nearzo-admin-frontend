@@ -410,7 +410,7 @@ const VendorDetail = () => {
                   <p className="mt-2 text-lg font-bold text-amber-900 dark:text-amber-100">₹{vendor.delivery_charge_per_km || 0}/km</p>
                 </div>
                 <div className="rounded-lg bg-gradient-to-br from-emerald-50/50 to-emerald-50/30 p-4 dark:from-emerald-400/5 dark:to-emerald-400/0">
-                  <p className="text-xs uppercase text-emerald-700 dark:text-emerald-300 font-semibold">Free Delivery Above</p>
+                  <p className="text-xs uppercase text-emerald-700 dark:text-emerald-300 font-semibold">Free Delivery below</p>
                   <p className="mt-2 text-lg font-bold text-emerald-900 dark:text-emerald-100">{vendor.freeDeliveryKm || 0} km</p>
                 </div>
                 <div className="rounded-lg bg-gradient-to-br from-blue-50/50 to-blue-50/30 p-4 dark:from-blue-400/5 dark:to-blue-400/0">
