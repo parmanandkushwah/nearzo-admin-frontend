@@ -68,7 +68,7 @@ const Sidebar = ({ isOpen, setIsOpen, isMobile }) => {
         `}
       >
         <div className="flex h-20 items-center justify-between border-b border-white/10 px-4">
-              <div className="flex h-8 w-48 items-center justify-center ml-5">
+              <div className="flex h-12 w-48 items-center justify-center ml-5">
                 <img src={logo} alt="Logo" className="max-h-full max-w-full object-contain" />
               </div>
               {isMobile && isOpen ? (
