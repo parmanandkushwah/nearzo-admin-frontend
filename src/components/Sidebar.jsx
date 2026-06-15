@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { logout } from '../redux/authSlice';
 import {
+  FiAlertCircle,
   FiBarChart2,
   FiChevronLeft,
   FiGrid,
@@ -34,6 +35,7 @@ const Sidebar = ({ isOpen, setIsOpen, isMobile }) => {
         { path: '/store-categories', icon: FiShoppingBag, label: 'Store Categories' },
         { path: '/categories', icon: FiGrid, label: 'Product Categories' },
         { path: '/products', icon: FiPackage, label: 'Master Products' },
+        { path: '/non-master-products', icon: FiAlertCircle, label: 'Non-Master Products' },
         { path: '/orders', icon: FiShoppingCart, label: 'Orders' },
         { path: '/customers', icon: FiUsers, label: 'Customers' }
       ]

@@ -11,6 +11,7 @@ import VendorDetail from './pages/vendors/VendorDetail';
 import Categories from './pages/categories/Categories';
 import StoreCategories from './pages/categories/StoreCategories';
 import Products from './pages/products/Products';
+import NonMasterProducts from './pages/products/NonMasterProducts';
 import Orders from './pages/orders/Orders';
 import Customers from './pages/customers/Customers';
 import Settings from './pages/settings/Settings';
@@ -46,6 +47,7 @@ function App() {
 <Route path="categories" element={<Categories />} />
           <Route path="store-categories" element={<StoreCategories />} />
           <Route path="products" element={<Products />} />
+          <Route path="non-master-products" element={<NonMasterProducts />} />
           <Route path="orders" element={<Orders />} />
           <Route path="customers" element={<Customers />} />
           <Route path="settings" element={<Settings />} />
