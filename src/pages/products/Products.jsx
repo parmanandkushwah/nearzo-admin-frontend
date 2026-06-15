@@ -114,6 +114,10 @@ const MasterProducts = () => {
     categories.find(c => c.id === parseInt(watchedCategoryId)) || null
   , [watchedCategoryId, categories]);
 
+  const filterSelectedCategory = useMemo(() =>
+    categories.find(c => c.id === parseInt(selectedCategoryId)) || null
+  , [selectedCategoryId, categories]);
+
   const getCategoryName = (id) => categories.find(c => c.id === id)?.name || '-';
   const getSubCategoryName = (id) => categories.flatMap(c => c.subCategories).find(sc => sc.id === id)?.name || '-';
 
@@ -620,7 +624,7 @@ return createPortal(
               disabled={!selectedCategoryId}
             >
               <option value="">All Sub Categories</option>
-              {selectedCategory?.subCategories.map(sc => (
+              {filterSelectedCategory?.subCategories.map(sc => (
                 <option key={sc.id} value={sc.id}>{sc.name}</option>
               ))}
             </select>
