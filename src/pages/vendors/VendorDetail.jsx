@@ -387,7 +387,8 @@ const VendorDetail = () => {
                   { icon: FiMapPin, label: 'Area', value: vendor.area },
                   { icon: FiCopy, label: 'GST No', value: vendor.gstNo || 'N/A' },
                   { icon: FiPackage, label: 'Category', value: vendor.category },
-                  { icon: FiCalendar, label: 'Joined', value: vendor.joined },
+                  { icon: FiCalendar, label: 'Joined', value: vendor.joined || 'N/A' },
+                  { icon: FiShield, label: 'Verified On', value: vendor.approvedAt || (vendor.status === 'approved' ? 'Before tracking' : 'Not approved yet') },
                 ].map(item => (
                   <div key={item.label} className="flex items-center gap-3 rounded-lg bg-slate-50/50 p-3 dark:bg-white/[0.03]">
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-slate-600 shadow-sm dark:bg-white/[0.08] dark:text-slate-300">
